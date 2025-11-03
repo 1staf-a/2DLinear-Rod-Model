@@ -19,7 +19,7 @@ class Rod: #2D cylindrical rod
     E = 1                                       # elastic modulus [N/mm2]
     y = np.zeros([1,N])                         # deflection of cross-sections in [m]
 
-    kappa = np.zeros([1,N])                     # curvature of each cross-section (ignore for now)
+    kappa = np.zeros([2,N])                     # curvature of each cross-section (ignore for now)
 
     r = np.zeros([2,int(N)])                    # position vector of cross-section centreline [m,m]
     t = np.ones([2,int(N)])                     # tangent unit vector for each cross-section
@@ -32,19 +32,18 @@ class Rod: #2D cylindrical rod
     V = np.zeros([1,N])                         # internal shear loading [N]
     M = np.zeros([1,N])                         # internal moment [Nm]
 
-def boundary_condition(rod_i,load_mag=1.0,load_var=0.0,Conc_load=0.0,Conc_moment=0.0):
+def boundary_condition(rod_i,load_mag=1.0,Conc_load=0.0,Conc_moment=0.0):
     """
     Apply the boundary conditions to the rod
     :param rod_i: provide a rod class object
     :param load_mag: scalar multiple(N/mm) for the distributed load being applied.
-    :param load_var: enter the order of the variation of the loads wrt length. zero meaning constant, 1 meaning linear variation and so on...
     :param Conc_load: concentrated load(N) being applied at the free end
     :param Conc_moment: concentrated moment(Nm) being applied at the free end
     :return:
     """
     rod_i.F=Conc_load
     rod_i.Q=Conc_moment
-    rod_i.f= load_mag * rod_i.x ** load_var
+    rod_i.f= load_mag * rod_i.x
     pass
 
 def rod_properties(rod_i,elasticity=1.0,MoI=1.0,L=1.0,dx=0.1):
@@ -95,10 +94,19 @@ def linear_model(rod_i):
     # rod_dy = rod_i.y[1:] - rod_i.y[:-1]
     # rod_i.t[:,1:] = [(rod_i.x[1:] - rod_i.x[:-1]) / (((rod_i.x[1:] - rod_i.x[:-1]) ** 2 + (rod_i.y[1:] - rod_i.y[:-1]) ** 2) ** 0.5)
     #                , (rod_i.y[1:] - rod_i.y[:-1]) / (((rod_i.x[1:] - rod_i.x[:-1]) ** 2 + (rod_i.y[1:] - rod_i.y[:-1]) ** 2) ** 0.5)]
+
+    # forward finite difference to find the tangent
     rod_i.t[:, 1:] = [(rod_i.x[1:] - rod_i.x[:-1]), (rod_i.y[1:] - rod_i.y[:-1])]
     rod_i.t[:, 1:] = rod_i.t[:, 1:]/(rod_i.t[0,1:]**2 + rod_i.t[1,1:]**2)**0.5
     rod_i.t[1,0]=0
+    # 90 deg deflection to the tangent to find the normal
     rod_i.n=np.array([-rod_i.t[1,:],rod_i.t[0,:]])
+
+    # finite difference to find the curvature
+    rod_i.kappa[:, 1:] = [(rod_i.t[0,1:] - rod_i.t[0,:-1]), (rod_i.t[1,1:] - rod_i.t[1,:-1])]
+    rod_i.kappa[:, 1:] = rod_i.kappa[:, 1:] / (rod_i.kappa[0, 1:] ** 2 + rod_i.kappa[1, 1:] ** 2) ** 0.5
+    rod_i.kappa[1, 0] = 0
+
     pass
 
 def plot_rod(rod_i,arrows=False):
@@ -120,6 +128,10 @@ def plot_rod(rod_i,arrows=False):
     if arrows:
         plt.scatter(rod_i.x, rod_i.y)
         plt.quiver(rod_i.x,rod_i.y,rod_i.n[0, :],rod_i.n[1, :],scale=20,width=0.0045,color='k')
+
+    # curvature
+    # plt.quiver(rod_i.x, rod_i.y, rod_i.kappa[0, :], rod_i.kappa[1, :], scale=20, width=0.0045, color='k')
+
     plt.tick_params('x', labelbottom=False)
     plt.ylabel('Y [m]')
     plt.ylim(max_def*-2, max_def*2)
@@ -143,9 +155,9 @@ if __name__ == '__main__':
     rod = Rod()
     #Vary only the parameters in this main function if you wish to simulate a different environment
     rod_properties(rod,elasticity=1.4,MoI=1.5,L=1,dx=0.1)
-    boundary_condition(rod,load_mag=1.2,load_var=0,Conc_load=4,Conc_moment=1)
+    boundary_condition(rod,load_mag=1.2,Conc_load=0,Conc_moment=0)
     linear_model(rod)
-    plot_rod(rod,arrows=False)
+    plot_rod(rod,arrows=True)
 
 
 
