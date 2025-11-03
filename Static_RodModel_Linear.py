@@ -43,7 +43,7 @@ def boundary_condition(rod_i,load_mag=1.0,Conc_load=0.0,Conc_moment=0.0):
     """
     rod_i.F=Conc_load
     rod_i.Q=Conc_moment
-    rod_i.f= load_mag * rod_i.x
+    rod_i.f= load_mag * np.ones_like(rod_i.x)
     pass
 
 def rod_properties(rod_i,elasticity=1.0,MoI=1.0,L=1.0,dx=0.1):
@@ -69,7 +69,7 @@ def rod_properties(rod_i,elasticity=1.0,MoI=1.0,L=1.0,dx=0.1):
         rod_i.x = np.arange(0, rod_i.L + rod_i.dx, rod_i.dx)
         rod_i.N = int(rod_i.L / rod_i.dx + 1)
         rod_i.y = np.zeros([1,rod_i.N])
-        rod_i.kappa = np.zeros([1, rod_i.N])
+        rod_i.kappa = np.zeros([2, rod_i.N])
 
         rod_i.r = np.zeros([2, rod_i.N])
         rod_i.t = np.ones([2, rod_i.N])
@@ -154,10 +154,10 @@ def plot_rod(rod_i,arrows=False):
 if __name__ == '__main__':
     rod = Rod()
     #Vary only the parameters in this main function if you wish to simulate a different environment
-    rod_properties(rod,elasticity=1.4,MoI=1.5,L=1,dx=0.1)
-    boundary_condition(rod,load_mag=1.2,Conc_load=0,Conc_moment=0)
+    rod_properties(rod,elasticity=1.4,MoI=1.5,L=1,dx=0.05)
+    boundary_condition(rod,load_mag=1,Conc_load=1,Conc_moment=0)
     linear_model(rod)
-    plot_rod(rod,arrows=True)
+    plot_rod(rod,arrows=False)
 
 
 
